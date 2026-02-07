@@ -1,0 +1,5 @@
+{"nodes":[
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"cloud01","type":"FOG_DEVICE","mips":50,"ram":5000,"downBw":10000,"costPerSec":0.886,"costPerMem":0.119,"costPerBw":0.078,"activeEC":71.153,"idleEC":43.418,"comEC":53.364},
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"cloud02","type":"FOG_DEVICE","mips":100,"ram":5000,"downBw":10000,"costPerSec":0.834,"costPerMem":0.104,"costPerBw":0.076,"activeEC":71.394,"idleEC":44.9,"comEC":53.545},
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"cloud03","type":"FOG_DEVICE","mips":150,"ram":5000,"downBw":10000,"costPerSec":0.834,"costPerMem":0.104,"costPerBw":0.076,"activeEC":71.394,"idleEC":44.9,"comEC":53.545},
+],"links":[]}

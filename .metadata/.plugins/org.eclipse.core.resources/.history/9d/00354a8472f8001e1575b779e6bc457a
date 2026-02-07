@@ -1,0 +1,1026 @@
+/* PSO
+ * 
+ * 1. 
+ * 
+ * 
+ * */
+package org.fog.test.perfeval;
+import java.io.IOException;
+import java.text.DecimalFormat;
+import java.util.List;
+import java.util.Random;
+import java.util.HashMap;
+import org.cloudbus.cloudsim.Cloudlet;
+import org.cloudbus.cloudsim.CloudletSchedulerTimeShared;
+import org.cloudbus.cloudsim.Datacenter;
+import org.cloudbus.cloudsim.DatacenterBroker;
+import org.cloudbus.cloudsim.DatacenterCharacteristics;
+import org.cloudbus.cloudsim.Host;
+import org.cloudbus.cloudsim.Log;
+import org.cloudbus.cloudsim.Pe;
+import org.cloudbus.cloudsim.Storage;
+import org.cloudbus.cloudsim.UtilizationModel;
+import org.cloudbus.cloudsim.UtilizationModelFull;
+import org.cloudbus.cloudsim.Vm;
+import org.cloudbus.cloudsim.VmAllocationPolicySimple;
+import org.cloudbus.cloudsim.VmSchedulerTimeShared;
+import org.cloudbus.cloudsim.core.CloudSim;
+import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
+import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
+import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
+import org.fog.entities.FogDevice;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.lang.Math;
+import org.cloudbus.cloudsim.Cloudlet;
+import org.cloudbus.cloudsim.UtilizationModel;
+
+public class PSOGA {
+	
+	private static String category;
+	private static String subCategory;
+	
+	private static int noOfParticles = 0;
+	private static int maxItr = 0;
+
+	private static double FS = 0;
+	private static double makespan = 0;
+	private static double costs = 0;
+	private static double energy = 0;
+	private static double delay = 0;
+	private static double loadVar = 0;
+	private static double loadBal = 0;
+	private static double responseT = 0;
+	
+	private static double minTime = 0;
+	private static double minCost = 0;
+	private static double minEnergy = 0;
+	private static double minDelay = 0;
+	private static double maxTime = 0;
+	private static double maxCost = 0;
+	private static double maxEnergy = 0;
+
+	private static HashMap<Integer, Double> pbMap = new HashMap<>();
+	private static HashMap<Integer, HashMap <Cloudlet, FogDevice>> gbFMap = new HashMap<>();	
+	private static HashMap<Integer, HashMap<Integer, Double>> VMRTMap = new HashMap<>();
+	private static HashMap<Integer, HashMap<Cloudlet, FogDevice>> particlesMap = new HashMap<>();
+	private static HashMap<Integer, Double> bestFitnessMap = new HashMap<>();
+	private static HashMap<Integer, Double> fitnessMap = new HashMap<>();
+	private static HashMap<Integer, Double> position = new HashMap<>();
+	private static HashMap<Integer, Double> velocity = new HashMap<>();
+
+	/** The cloudlet list. */
+	private static List<? extends Cloudlet> cloudletList;
+	private static List<FogDevice> fogDevices;
+
+	public static void setCloudletList(List<? extends Cloudlet> cldLst) 
+	{
+		cloudletList = cldLst;
+	}
+	public static void setFogDevices(List<FogDevice> cldLst) 
+	{
+		fogDevices = cldLst;
+	}
+
+	public static void main(String[] args) {
+
+		Log.printLine("Starting ADMM-PSO...");
+
+		try {
+
+			if (args.length > 0) 
+			{
+				category = args[0];
+				subCategory = args[1];
+				noOfParticles = Integer.parseInt(args[2]);
+				maxItr = Integer.parseInt(args[3]);
+			}
+			
+			double psoStartTime = System.currentTimeMillis();
+
+			minTime = calcMinTime(fogDevices, cloudletList);
+			minCost = calcMinCost(fogDevices, cloudletList);
+			minEnergy = calcMinEnergy(fogDevices, cloudletList);
+			minDelay = calcMinDelay(fogDevices, cloudletList);
+
+			maxTime = calcMaxTime(fogDevices, cloudletList);
+			maxCost = calcMaxCost(fogDevices, cloudletList);
+			maxEnergy = calcMaxEnergy(fogDevices, cloudletList);
+
+			System.out.println("Lower bounds:\n" + "makespan: " + minTime + ", Cost: " + minCost + ", Energy: " + minEnergy);
+			
+			/* PSO-GA */
+			
+			int itr = 1; 
+			double bestParticleMakespan = 0.0; 
+			double gBestParticleFitness = 0.0;
+
+			Random rand = new Random();
+			double pos = 0; 
+			double w = 0.0; 
+			double v = rand.nextDouble(); 
+			double w1 = 0.9; 
+			double w2 = 0.4;
+			double c1 = 2; 
+			double c2 = 1.49455;
+			double SS = 0.0;
+			double Ps = 1;
+		
+			/*
+			 * M - fog nodes
+			 * N - IoT devices; It can be changed to T, no of tasks
+			 */
+			
+			/* 
+			 * 1. PSO population (PoP) consisting of N_pop individuals is initialized.
+			 * 2. In each iteration, N_c offspring are produced using the crossover operator yielding PoP_c.
+			 * 3. Applying mutation operator on N_m individuals, N_m mutated individuals are generated yielding PoP_m.
+			 * 4. The best N_pop individuals are elected from PoP, PoP_c, and PoP_m.
+			 * 5. Ordinary PSO continues...
+			*/
+			
+			/*Chromosome Structure
+			 * 
+			 * Chr = [B, pie, Q]
+			 * B = [b1, b2, .... bN];	 bi = {0,1}												// 1 means offloaded, 0 means local processing
+			 * pie = [pie1, pie2, ... pieN];	piei = randi({1,..M} INTERSECTION R(IDi))		// Seems to select a random fog node
+			 * Q = [q1powerpie1, q2powerpie2, ...qnpowerpieN];	qipowerpiei = {0,1}	
+			 *
+			 *Start from 5.2. Initialization on page 10
+			 *
+			 *
+			 *
+			 *
+			 *
+			 *
+			 */
+			
+			
+			
+			for (int p = 0; p < noOfParticles; p++)		// Developing the matrix for P and V in RMPSO
+			{
+				Random random = new Random();
+				double pn = random.nextDouble()*10000; // returns values 0 to 10'000 inclusive
+				double vy = random.nextDouble()*2000;	// returns values 0 to 2000 inclusive
+				
+				position.put(p, pn);
+				velocity.put(p, vy);
+			}
+
+			// Initializing pbMap			
+			for (int p = 0; p < noOfParticles; p++)
+			{
+				pbMap.put(p, 0.0);
+			}
+
+			// Initializing VMRTMap			
+			for (int p = 0; p < noOfParticles; p++)
+			{
+				HashMap<Integer, Double> innerVMRTMap = new HashMap<>();
+				for (FogDevice vm:fogDevices)
+	    		{
+					innerVMRTMap.put(vm.getId(), 0.0);
+	    		}
+				VMRTMap.put(p, innerVMRTMap);
+			}
+
+			for (int p = 0; p < noOfParticles; p++)
+			{
+				fitnessMap.put(p, 0.0);
+	    	}
+
+			for (int p = 0; p < noOfParticles; p++)
+			{
+				bestFitnessMap.put(p, 0.0);
+	    	}
+
+			// Initializing gbFMap
+			HashMap<Cloudlet, FogDevice> innergbFMap = new HashMap<>();
+			for (Cloudlet cld:cloudletList)
+    		{
+				Random r = new Random();
+				int ranVmId = r.nextInt(fogDevices.size());
+				FogDevice randVm = fogDevices.get(ranVmId); 		
+				innergbFMap.put(cld, randVm);
+    		}
+			gbFMap.put(0, innergbFMap);
+			
+			// Initializing ParticlesMap
+			for (int p = 0; p<noOfParticles; p++)
+			{
+				HashMap<Cloudlet, FogDevice> singleParticleMap = new HashMap<>();
+
+				for (Cloudlet cld:cloudletList)
+	    		{
+					Random r = new Random();
+					int ranVmId = r.nextInt(fogDevices.size());
+					FogDevice randVm = fogDevices.get(ranVmId); 		
+					singleParticleMap.put(cld, randVm);
+	    		}
+				particlesMap.put(p, innergbFMap);
+			}
+			
+			gBestParticleFitness = initializeParticles();
+			bestParticleMakespan = getGBest(pbMap);
+			
+			System.out.println("The first gbest is: " + bestParticleMakespan+"\n");
+
+			while(itr <= maxItr)
+			{
+				w = ((w1-w2)/Ps)+((maxItr-itr)/maxItr)*(w1-(w1-w2)/Ps);
+				
+				for (int p = 0; p < noOfParticles; p++)
+				{
+					HashMap<Cloudlet, FogDevice> tmpParticleMap = new HashMap<>(particlesMap.get(p));		// Taking out the first particle
+					
+					for (int c = 0; c < cloudletList.size(); c++)
+					{
+						Cloudlet cld = cloudletList.get(c);				// getting the current cloudlet
+						FogDevice vm = tmpParticleMap.get(cld);	
+
+						double r1 = rand.nextDouble();
+						double r2 = rand.nextDouble();
+						double vel = velocity.get(p);
+						pos = position.get(p);
+
+						v = (w*velocity.get(p)) + (c1*r1*(particlesMap.get(p).get(cld).getId()-position.get(p))) + 
+														(c2*r2*(gbFMap.get(0).get(cld).getId()-position.get(p)));
+						velocity.put(p, vel);
+						pos = position.get(p) + velocity.get(p);								
+						position.put(p, pos);
+						
+						if (pos >= fogDevices.size() || pos < 0)
+						{
+							pos = rand.nextInt(fogDevices.size());
+						}
+
+						int intnewParticlePosition = (int) pos;
+						FogDevice newRandVm = fogDevices.get(intnewParticlePosition);
+						double oldLoad = cld.getCloudletLength()/(double) vm.getCharacteristics().getMips();
+						updateDownVMRTMap(VMRTMap.get(p), vm, oldLoad);
+						double newLoad = cld.getCloudletLength()/(double) newRandVm.getCharacteristics().getMips();
+						updateUpVMRTMap(VMRTMap.get(p), newRandVm, newLoad);
+						tmpParticleMap.put(cld, newRandVm);
+					}// End of Cloudlets loop
+					
+					particlesMap.put(p, tmpParticleMap);
+					
+					double tmpBestParticleMakespan = getpbMap(VMRTMap.get(p));
+					
+					double [] result = calcFitness(p, tmpBestParticleMakespan);
+					double fitness = result[0];
+					double cost = result[1];
+					double totalEnergy = result[2];
+					double totalDelay = result[3];
+					double totalLoadVar = result[4];
+					double totalLoadBal = result[5];
+					double totalRespTime = result[6];
+
+					fitnessMap.put(p, fitness);
+				
+					if (fitness > bestFitnessMap.get(p))
+					{
+						bestFitnessMap.put(p, fitness);
+				
+						if (fitness > gBestParticleFitness)
+						{
+							gBestParticleFitness = fitness;
+							System.out.println("The g-Best is: " + fitness+ "\n");
+							gbFMap.put(0, particlesMap.get(p));
+							
+							System.out.println("fitness: " + fitness + " Makespan: "+bestParticleMakespan+", Cost: "+cost+", "+ ", totalEnergy: " + 
+																													totalEnergy + ", delay" + totalDelay);
+							bestParticleMakespan = tmpBestParticleMakespan;
+							makespan = bestParticleMakespan;
+							costs = cost;
+							energy = totalEnergy;
+							FS = fitness;
+							delay = totalDelay;
+							loadVar = totalLoadVar;
+							loadBal = totalLoadBal;
+							responseT = totalRespTime;
+						}
+					}
+				}// End of Particles loop
+
+				Ps = SS/noOfParticles;
+				if (Ps <= 0) { Ps = 1; }
+				itr++;
+			}// End of Iterations loop
+
+			double psoEndTime = System.currentTimeMillis();
+			double executionTime = psoEndTime-psoStartTime;
+
+			System.out.println("\n	The last gBestWhale is: " + FS + " Makespan: "+makespan+", Cost: "+costs+ ", Energy: " + energy+ ", Execution Time: " 
+							+ executionTime + " Delay: " + delay + " LoadVar: " + loadVar + " LoadBal: " + loadBal + " ResponseT:" + responseT + "\n");
+			
+			// Executing Final Mapping of cloudlets to VMs on console			
+			for (HashMap.Entry<Cloudlet, FogDevice> entry : gbFMap.get(0).entrySet()) 
+			{
+				long cldLength = entry.getKey().getCloudletTotalLength();
+				double vmLength = entry.getValue().getCharacteristics().getMips();
+
+				double exec = cldLength/vmLength;
+//				System.out.println("executionTime_" + entry.getKey().getCloudletId() + "_on_" +entry.getValue().getId() + " is: " + exec);
+				System.out.println("executionTime_" + entry.getKey().getCloudletId() + "_on_" + entry.getValue().getName() + " is: " + exec);
+			}
+
+	    	try
+	    	{
+	    		String fileToWrite = null;
+				
+	    		fileToWrite = "D:/iFogSim_Obj3/iFogSim/reports/PSOGA/" + category + "/output_"+ subCategory + ".txt";
+//		    	fileToWrite = "D:/iFogSim_Obj3/iFogSim/reports/PSOGA/" + category + "/output_"+ noOfParticles + ".txt";
+//		    	fileToWrite = "D:/iFogSim_Obj3/iFogSim/reports/PSOGA/" + category + "/output_"+ maxItr + ".txt";
+
+	    		FileWriter fWriter = new FileWriter(fileToWrite,true);
+	    		BufferedWriter bWriter = new BufferedWriter(fWriter);
+	    		bWriter.write(FS + ", "+ makespan + ", "+ costs+ ", "+ energy+", "+ executionTime +", "+ cloudletList.size()/makespan +
+	    							", " + delay + ", " + loadVar + ", " + loadBal + ", " + responseT + "\n");
+	    		bWriter.close();
+	    		fWriter.close();
+	    	}
+	    	catch(IOException e)
+	    	{
+	    		System.out.println("An error occurred while writing to the file: " + e.getMessage());
+	    	}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			Log.printLine("The simulation has been terminated due to an unexpected error");
+		}
+	}
+
+	
+	// AdPSO Functions Definitions
+	private static double initializeParticles()
+	{	
+		Random rand = new Random();
+
+		for (int p = 0; p < noOfParticles; p++) 	
+	    {
+			HashMap<Cloudlet, FogDevice> singlePMap = new HashMap<>();
+
+			HashMap<Integer, Double> innerVMRTMap = new HashMap<>();
+			// Initializing innerVMRTMap			
+			for (FogDevice vm:fogDevices)
+    		{
+				innerVMRTMap.put(vm.getId(), 0.0);
+			}
+
+			for (int c = 0; c < cloudletList.size(); c++) 		// For each particle, there are "cloudletList.size" no of entries in the particleMap.
+	        {
+	            Cloudlet cld = cloudletList.get(c);
+
+	            int vmIndex = rand.nextInt(fogDevices.size());
+	            FogDevice vm = fogDevices.get(vmIndex);
+	            singlePMap.put(cld, vm);
+	        
+				double eTime = cld.getCloudletLength()/vm.getCharacteristics().getMips();
+				int vmId = vm.getId();
+				
+				double oldLoad = innerVMRTMap.get(vmId);
+				double newLoad = oldLoad+eTime;
+				
+				innerVMRTMap.put(vmId, newLoad);
+//				System.out.println("********************** Task " + c + " Initialization***********");
+//				System.out.println("Cloudet: "+cld.getCloudletId() + "|VM: "+vm.getId() + "|Execution time: "+newLoad);
+	        }
+			VMRTMap.put(p, innerVMRTMap);
+
+			particlesMap.put(p, singlePMap);
+			pbMap.put(p, getpbMap(VMRTMap.get(p))); // earlier fitness was included instead of VRTMap-later reverse this change
+
+			double tmpBestWhaleMakespan = pbMap.get(p);	
+			double [] result = calcFitness(p, tmpBestWhaleMakespan);
+			double fitness = result[0];
+//			double cost = result[1];			// Not needed at this stage
+//			double totalEnergy = result[2];		// Not needed at this stage
+//			double totalDelay = result[3];		// Not needed at this stage
+//			double totalLoadVar = result[4];	// Not needed at this stage
+//			double totalLoadBal = result[5];	// Not needed at this stage
+//			double totalRespTime = result[6];	// Not needed at this stage
+			bestFitnessMap.put(p, fitness);
+			fitnessMap.put(p, fitness);
+		}
+
+		double fit = 0;
+		int index = 0;
+		
+		for (HashMap.Entry<Integer, Double> entry : bestFitnessMap.entrySet()) 
+		{
+			int whale = entry.getKey();
+			double fitness = entry.getValue();
+
+			if (fitness > fit)
+			{
+				fit = fitness;
+				index = whale;
+			}
+		}		
+		gbFMap.put(0, particlesMap.get(index));
+		return fit;
+	}
+
+	private static double[] calcFitness(int w, double tmpBestparticleMakespan)
+	{
+			for (int i = 0; i < fogDevices.size(); i++) // clearing the assigned cloudlets on all fogDevices
+			{
+				FogDevice fd = fogDevices.get(i);
+				fd.getCloudletListAssignment().clear();
+			}
+
+			/***************************** Cost **************************/
+
+			double cost = 0;
+			HashMap<Cloudlet, FogDevice> tmpparticleMap = new HashMap<>(particlesMap.get(w));
+			
+			for (HashMap.Entry<Cloudlet, FogDevice> entry : tmpparticleMap.entrySet()) 
+			{
+				Cloudlet cld = entry.getKey(); 		// unique
+				FogDevice fd = entry.getValue(); 	// can repeat
+				
+				// cost includes the processing cost = cost/sec * processing time
+				cost = cost + fd.getCharacteristics().getCostPerSecond() * cld.getCloudletLength()/ fd.getHost().getTotalMips();
+				// cost includes the memory cost
+				cost = cost + fd.getCharacteristics().getCostPerMem() * cld.getMemRequired();
+				// cost includes the bandwidth cost
+				cost = cost + fd.getCharacteristics().getCostPerBw() * (cld.getCloudletFileSize() + cld.getCloudletOutputSize());
+				
+				fd.getCloudletListAssignment().add(cld);	// assigning cloudlets to each fog node
+				tmpparticleMap.put(cld, fd);
+			}
+			particlesMap.put(w, tmpparticleMap);
+
+			/***************************** Delay and Load Variance **************************/
+			
+			double QD = 0;
+			double ET = 0;
+			double TD = 0;
+			double PD = 0;		// Assumed negligible in objective-3
+
+			double sumOfLoads = 0;
+			HashMap<Integer, Double> loads = new HashMap<>();
+			
+			for (FogDevice fogDevice : fogDevices) 
+			{
+				double sumOfData = 0;
+				double previousLoad = 0;
+				double avgQD = 0;
+				double avgET = 0;
+				double totalLength = 0;
+				double singleLoad = 0;
+				
+				for (Cloudlet cloudlet : fogDevice.getCloudletListAssignment())
+				{
+					sumOfData = sumOfData + (cloudlet.getCloudletFileSize() + cloudlet.getCloudletOutputSize());
+					totalLength = totalLength + cloudlet.getCloudletLength();
+				}
+				
+				int NoOfTasks = 0;
+				for (Cloudlet cloudlet : fogDevice.getCloudletListAssignment())
+				{
+					double singleTaskDelay = cloudlet.getCloudletLength()/fogDevice.getCharacteristics().getMips();
+					avgQD = avgQD + previousLoad;
+					avgET = avgET+singleTaskDelay;
+					
+					previousLoad = previousLoad + singleTaskDelay;
+					NoOfTasks++;
+				}
+				
+				if (NoOfTasks == 0) // if any fogDevice has zero tasks allocated to it
+				{
+					QD = QD + 0;
+					ET = ET + 0;
+					TD = TD + 0; 	// bW = 1024 MB/s
+				}
+				else 
+				{
+					QD = QD + (avgQD/NoOfTasks);
+					ET = ET + (avgET/NoOfTasks);
+					TD = TD + (sumOfData/1024); 	// bW = 1024 MB/s
+				}
+				
+				singleLoad = totalLength/(fogDevice.getCharacteristics().getMips()+1024);
+				sumOfLoads = sumOfLoads + singleLoad;
+				
+				loads.put(fogDevice.getCharacteristics().getId(), singleLoad);
+			}
+			
+			QD = QD/fogDevices.size();
+			ET = ET/fogDevices.size();
+			TD = TD/fogDevices.size();
+			
+			double delay = QD + ET + TD + PD;		// average delay for each task on 32 vms.
+			
+			double sumOfDif = 0;
+			for (HashMap.Entry<Integer, Double> entry : loads.entrySet()) 
+			{
+				double load = entry.getValue();
+				double dif = sumOfLoads - load;		// if we swap the values, then we need to use the Math.Abs() function
+					
+				sumOfDif = sumOfDif + dif;
+			}
+			
+			double loadVar = Math.sqrt(sumOfDif/fogDevices.size());
+			
+			double avgLB = sumOfLoads/fogDevices.size();
+			
+			/***************************** Response Time *****************************/
+			double avgRT = QD;
+			
+			/***************************** Energy **************************/
+
+			double totalEnergy = 0;
+			for (FogDevice fogDevice : fogDevices) 
+			{
+				double totalLength = 0;
+				
+				for (Cloudlet cloudlet : fogDevice.getCloudletListAssignment()) // Only the assigned cloudlets to a fogDevice are considered 
+				{
+					totalLength = totalLength + cloudlet.getCloudletLength();
+				}
+				
+				//			   				Active EC in watts/sec   *	Active Time Duration
+				totalEnergy = totalEnergy + fogDevice.getBusyPower() * (totalLength/fogDevice.getCharacteristics().getMips()) 
+										  + fogDevice.getIdlePower() * (tmpBestparticleMakespan - (totalLength/fogDevice.getCharacteristics().getMips())); 
+				//			 				 Idle EC in watts/sec	 * 		Idle Time Duration 
+		
+				double SingleNodeCommEn = 0;
+				
+				for (Cloudlet cloudlet : fogDevice.getCloudletListAssignment()) // Only the assigned cloudlets to a fogDevice are considered 
+				{										// During communication, comEC is consumed per second by a node having bW = 1024 Mbps
+														// The sum of file size and output size is divided by the bW
+					SingleNodeCommEn = SingleNodeCommEn + (((cloudlet.getCloudletFileSize() + cloudlet.getCloudletOutputSize()) /1024) * fogDevice.getComEC());
+				}
+				
+				totalEnergy = totalEnergy + SingleNodeCommEn;
+			}
+			totalEnergy = totalEnergy*0.001;	// 1 Watt = 0.001 kj per second
+
+		double [] fitness = {0,0,0,0,0,0,0};		// 0 index storing fitness while the 1 index stores energy
+
+		fitness[0] = Utility.fitAgent(minTime, tmpBestparticleMakespan, minCost, cost, minEnergy, totalEnergy, minDelay, delay);
+
+		fitness[1] = cost;
+		fitness[2] = totalEnergy;
+		fitness[3] = delay;
+		fitness[4] = loadVar;
+		fitness[5] = avgLB;
+		fitness[6] = avgRT;
+		
+		return fitness;
+	}
+
+	private static double calcMinTime(List<FogDevice> fogDevices, List<? extends Cloudlet> cloudletList) 
+	{
+		double minTime = 0;
+		double totalLength = 0;
+		double totalMips = 0;
+		
+		for (Cloudlet cloudlet : cloudletList) 
+		{
+			totalLength = totalLength + cloudlet.getCloudletLength();
+		}
+		
+		for (FogDevice fogDevice : fogDevices) 
+		{
+			totalMips = totalMips + fogDevice.getCharacteristics().getMips();
+		}
+		
+		minTime = totalLength / totalMips;
+		
+		return minTime;
+	}
+
+	// the function calculate the LOWER BOUND of the solution about cost
+	private static double calcMinCost(List<FogDevice> fogDevices, List<? extends Cloudlet> cloudletList)
+	{
+		double minCost = 0;																			
+	
+		for (Cloudlet cloudlet : cloudletList) 
+		{
+			double minCloudletCost = Double.MAX_VALUE;
+		
+			for (FogDevice fogDevice : fogDevices) 
+			{
+				double cost = calcCost(cloudlet, fogDevice);
+				if (cost < minCloudletCost)
+				{
+					minCloudletCost = cost;
+				}
+			}
+			// the minCost is defined as the sum of all minCloudletCost
+			minCost = minCost + minCloudletCost;
+		}
+		return minCost;
+	}
+
+// the method calculates the cost (G$) of single cloudlet on a fogDevice
+	private static double calcCost(Cloudlet cloudlet, FogDevice fogDevice) 
+	{
+		double cost = 0;
+		// cost includes the processing cost = cost/sec * processing time
+		cost = cost + fogDevice.getCharacteristics().getCostPerSecond() * cloudlet.getCloudletLength()/ fogDevice.getCharacteristics().getMips();
+		// cost includes the memory cost
+		cost = cost + fogDevice.getCharacteristics().getCostPerMem() * cloudlet.getMemRequired();
+		// cost includes the bandwidth cost
+		cost = cost + fogDevice.getCharacteristics().getCostPerBw() * (cloudlet.getCloudletFileSize() + cloudlet.getCloudletOutputSize());
+
+		return cost;
+	}
+
+
+	// the function calculate the LOWER BOUND of the solution about cost
+	private static double calcMinEnergy(List<FogDevice> fogDevices, List<? extends Cloudlet> cloudletList)
+	{
+		double minEnergy = 0;																			
+	
+		for (Cloudlet cloudlet : cloudletList) 
+		{
+			double minCloudletEnergy = Double.MAX_VALUE;
+		
+			for (FogDevice fogDevice : fogDevices) 
+			{
+				double energy = calcEnergy(cloudlet, fogDevice);
+				if (energy < minCloudletEnergy)
+				{
+					minCloudletEnergy = energy;
+					System.out.println("Fog Device: " +
+					fogDevice.getName() + ", MIPS: " + fogDevice.getCharacteristics().getMips() + ", MEC: "+ energy+ 
+					" for cloudlet: "+ cloudlet.getCloudletId() + ", Length: " + cloudlet.getCloudletLength() );
+				}
+			}
+			System.out.println("\n");
+
+			// the minEnergy stores the sum of all cloudlets minimum energy consumption
+			minEnergy = minEnergy + minCloudletEnergy;
+		}
+		return minEnergy;	
+	}
+	
+	private static double calcEnergy(Cloudlet cloudlet, FogDevice fogDevice) 
+	{
+		double energy =  fogDevice.getBusyPower() * (cloudlet.getCloudletLength()/ fogDevice.getCharacteristics().getMips());
+
+		energy = energy + (((cloudlet.getCloudletFileSize() + cloudlet.getCloudletOutputSize()) /  1024)   *fogDevice.getComEC());
+
+		energy = energy*0.001;
+		
+		return energy;
+	}
+
+	private static double calcMinDelay(List<FogDevice> fogDevices, List<? extends Cloudlet> cloudletList) 
+	{	// Assuming queuing delay = 0
+		
+		double minDelay = 0;
+		double totalLength = 0;
+		double totalMips = 0;
+		double totalFileSizeOutput = 0;
+		
+		for (Cloudlet cloudlet : cloudletList) 
+		{
+			totalLength = totalLength + cloudlet.getCloudletLength();
+			totalFileSizeOutput = totalFileSizeOutput + (cloudlet.getCloudletFileSize() + cloudlet.getCloudletOutputSize());
+		}
+		
+		for (FogDevice fogDevice : fogDevices) 
+		{
+			totalMips = totalMips + fogDevice.getCharacteristics().getMips();
+		}
+		
+		minDelay = (totalLength/totalMips) + (totalFileSizeOutput/(1024*31));		// bW = 1024 and number of vms besides gateway = 31
+		minDelay = minDelay/fogDevices.size();										// to treat minDelay as an average delay for all nodes.
+		
+		return minDelay;
+	}
+	
+	// the function calculate the UPPER BOUND of the solution about makespan
+	private static double calcMaxTime(List<FogDevice> fogDevices, List<? extends Cloudlet> cloudletList) 
+	{
+		double maxTime = 0;
+		double totalLength = 0;
+		
+		for (Cloudlet cloudlet : cloudletList) 
+		{
+			totalLength = totalLength + cloudlet.getCloudletLength();
+		}
+		
+		FogDevice weakestFogDevice = fogDevices.get(0);		// fog00 is the weakest fog node among all
+		maxTime = totalLength / weakestFogDevice.getCharacteristics().getMips();	// running all tasks on the weakest fog node
+		
+		return maxTime;
+	}
+
+	// the function calculate the UPPER BOUND of the solution about cost
+	private static double calcMaxCost(List<FogDevice> fogDevices, List<? extends Cloudlet> cloudletList)
+	{
+		double maxCost = 0;																			
+	
+		for (Cloudlet cloudlet : cloudletList) 
+		{
+			double maxCloudletCost = Double.MIN_VALUE;
+		
+			for (FogDevice fogDevice : fogDevices) 
+			{
+				double cost = calcCost(cloudlet, fogDevice);
+				if (cost > maxCloudletCost)
+				{
+					maxCloudletCost = cost;
+				}
+			}
+			// the maxCost is defined as the sum of all maxCloudletCost
+			maxCost = maxCost + maxCloudletCost;
+		}
+		return maxCost;
+	}
+
+	private static double calcMaxEnergy2(List<FogDevice> fogDevices, List<? extends Cloudlet> cloudletList)
+	{
+		/* This function is assigning all tasks to all fog nodes and then the energy consumption is calculated as upper bound. The other function is more 
+		 * logical as compared to this one.
+		 */
+		double totalLength = 0;
+		double totalEnergyInActiveTime = 0;
+		double totalEnergy = 0;
+		
+		for (Cloudlet cloudlet : cloudletList) 
+		{
+			totalLength = totalLength + cloudlet.getCloudletLength();
+		}
+
+		for (int i = 0; i < fogDevices.size(); i++)
+		{
+			FogDevice fNode = fogDevices.get(i);
+			
+			totalEnergyInActiveTime = fNode.getBusyPower() * (totalLength/ fNode.getCharacteristics().getMips());
+
+			totalEnergy = totalEnergy + totalEnergyInActiveTime;
+		
+			double SingleCloudCommEn = 0;
+			
+			for (Cloudlet cloudlet : cloudletList)  // All cloudlets will run on every device  
+			{										/*During communication, 100 watts is consumed per second by a cloud node having bW = 500 Mbps
+														The sum of file size and output size is divided by the bW */
+				SingleCloudCommEn = SingleCloudCommEn + (((cloudlet.getCloudletFileSize() + cloudlet.getCloudletOutputSize()) /  1024) * fNode.getComEC());
+			}
+			
+			totalEnergy = totalEnergy + SingleCloudCommEn;
+		}
+
+		double idleEnergyAllFogNodes = 0;
+		
+		for (FogDevice fd : fogDevices)			// calculating the idle energy of all nodes in addition to active time
+		{
+			double activeTime = totalLength/ fd.getCharacteristics().getMips();
+		
+			double idleTimeforAllFogDevices = activeTime; // suppose both times are same to get the upper bound
+			
+			idleEnergyAllFogNodes = idleEnergyAllFogNodes + fd.getIdlePower() * idleTimeforAllFogDevices;
+		}
+
+		totalEnergy = totalEnergy + idleEnergyAllFogNodes;
+		
+		totalEnergy = totalEnergy*0.001;
+		
+		return totalEnergy;	
+	}
+
+	private static double calcMaxEnergy(List<FogDevice> fogDevices, List<? extends Cloudlet> cloudletList)
+	{
+		/*This function is more logical as all the tasks are run on fog00 to get the energy consumption of the entire system. While in the second function, we 
+		are assigning all the tasks to all the fog nodes and then the energy consumption is calculated which is illogical*/
+
+		double allCloudletsLength = 0;
+		
+		for (Cloudlet cloudlet : cloudletList) 
+		{
+			allCloudletsLength = allCloudletsLength + cloudlet.getCloudletLength();
+		}
+
+		double mk = allCloudletsLength /fogDevices.get(0).getCharacteristics().getMips();	 	// running all tasks on the slowest fog node to get the upper bound for 
+																								// energy consumption
+		for (int i = 0; i < 1; i++) 
+		{
+			FogDevice fd = fogDevices.get(i);
+			
+			for (Cloudlet cloudlet : cloudletList) 
+			{
+				fd.getCloudletListAssignment().add(cloudlet);
+			}
+		}		
+
+		double totalEnergy = 0;
+		for (FogDevice fogDevice : fogDevices) 
+		{
+			double totalLength = 0;
+			
+			for (Cloudlet cloudlet : fogDevice.getCloudletListAssignment()) // Only the assigned cloudlets to a fogDevice are considered 
+			{
+				totalLength = totalLength + cloudlet.getCloudletLength();
+			}
+			
+			//			   				Active EC in watts/sec   *	Active Time Duration
+			totalEnergy = totalEnergy + fogDevice.getBusyPower() * (totalLength/fogDevice.getCharacteristics().getMips()) 
+									  + fogDevice.getIdlePower() * (mk - (totalLength/fogDevice.getCharacteristics().getMips())); 
+			//			 				 Idle EC in watts/sec	 * 		Idle Time Duration 
+	
+			double SingleNodeCommEn = 0;
+			
+			for (Cloudlet cloudlet : fogDevice.getCloudletListAssignment()) // Only the assigned cloudlets to a fogDevice are considered 
+			{								/* During communication, comEC is consumed per second by a node having bW = 1024 Mbps */
+																			/* The sum of file size and output size is divided by the bW */
+				SingleNodeCommEn = SingleNodeCommEn + (((cloudlet.getCloudletFileSize() + cloudlet.getCloudletOutputSize()) /  1024)   * fogDevice.getComEC());
+			}
+			totalEnergy = totalEnergy + SingleNodeCommEn;
+		}
+		totalEnergy = totalEnergy*0.001;	// 1 Watt = 0.001 kj per second
+		
+		return totalEnergy;	
+	}
+
+	private static double getGBest(HashMap<Integer, Double> bestparticlesMap) {
+	    double minParticleMakespan = bestparticlesMap.get(0);			// Selecting the particle having the minimum makespan.
+		
+	    for(int i=0; i < bestparticlesMap.size(); i++)
+		{
+			if (bestparticlesMap.get(i) < minParticleMakespan)
+			{
+			    minParticleMakespan = bestparticlesMap.get(i);
+			}
+		}
+		return minParticleMakespan;
+	}
+
+	private static int getGBestIndex(HashMap<Integer, Double> bestparticlesMap) {
+    double minParticleMakespan = Double.MAX_VALUE;			// Selecting the particle' index having the minimum makespan.
+	int index = 0;
+	
+    for(int i=0; i < bestparticlesMap.size(); i++)
+	{
+		if (bestparticlesMap.get(i) < minParticleMakespan)
+		{
+		    minParticleMakespan = bestparticlesMap.get(i);
+		    index = i;
+		}
+	}
+//    System.out.println("The gBest index is: "+index);
+	return index;
+}
+	
+	private static double getVMReadyTime(HashMap<Integer, Double> vmRemMap, FogDevice VM) 
+	{
+		int vmid = VM.getId();
+		double vmReadyT = 0.0;
+		
+		if (vmRemMap.get(vmid) != null)
+		{
+			vmReadyT = vmRemMap.get(vmid);
+		}
+		return vmReadyT;
+	}	
+	
+	private static void updateUpVMRTMap(HashMap<Integer, Double> vmRemMap, FogDevice VM, double execTime) 
+	{
+//		System.out.println("Adding " + execTime + " to "+ VM.getId());
+		int vmid = VM.getId();
+		double prevLoad = 0.0;
+		double newLoad = execTime;
+		
+		if (vmRemMap.get(vmid) == null)
+		{
+			vmRemMap.put(vmid, newLoad);
+		}
+		else
+		{
+			prevLoad = vmRemMap.get(vmid);
+			double totalLoad = prevLoad + newLoad;
+			vmRemMap.put(vmid, totalLoad);
+		}
+	}
+	
+	private static void updateDownVMRTMap(HashMap<Integer, Double> vmRemMap, FogDevice VM, double execTime) 
+	{
+//		System.out.println("Subtracting " + execTime + " from "+ VM.getId()+"\n");
+		int vmid = VM.getId();
+		double prevLoad = 0.0;
+		
+		
+		if (vmRemMap.get(vmid) == null)
+		{
+			vmRemMap.put(vmid, prevLoad);
+		}
+		else
+		{
+			prevLoad = vmRemMap.get(vmid);
+			double totalLoad = prevLoad - execTime;
+			vmRemMap.put(vmid, totalLoad);
+		}
+	}
+	
+	private static void updatepMap(HashMap<Integer, Double> vmRemMap,
+	  HashMap<Cloudlet, FogDevice> VmMap, double pos, int c) 
+	  { 
+		  int ranPos = (int) pos; 
+		  FogDevice newRandVm = fogDevices.get(ranPos); 
+		  Cloudlet cloudlet = cloudletList.get(c);
+		  VmMap.put(cloudlet, newRandVm); 
+	  }
+	 	
+	private static double getpbMap(HashMap<Integer, Double> VMRTMap) 	// Returns the busiest VM -- It is also a fitness function
+	{
+		double busyVm = 0.0;
+		
+		for (HashMap.Entry<Integer, Double> entry : VMRTMap.entrySet()) 
+		{
+			double vmRt = entry.getValue();
+			
+			if (vmRt > busyVm)
+	        {
+				busyVm = vmRt; 
+	        }
+	    }
+//		System.out.println("The bestValue of particle is: "+ busyVm);
+		return busyVm;
+	}	
+
+	/* WOA Functions Definitions End*/
+
+	private static double avgRU(double mk) 	// Average Resource Utilization according to OG-RADL eq.(10)
+	{
+		double ARU = 0.0, avgMakespan = 0.0, sum = 0.0;
+		for(FogDevice vm:fogDevices)
+		  {
+			double singleVmMakespan = 0.0;
+			for (int i = 0; i<cloudletList.size(); i++)
+			  {
+				  if (cloudletList.get(i).getVmId() == vm.getId())
+				  {
+					  if(cloudletList.get(i).getFinishTime() > singleVmMakespan)
+					  {
+						  singleVmMakespan = cloudletList.get(i).getFinishTime(); // returns the lastly executed cloudlet by the vm
+					  }
+				  }				  
+			  }
+			  sum = sum + singleVmMakespan; // summing up the finish-times of last cloudlet's execution by all vms
+		  }
+		avgMakespan = sum/fogDevices.size();
+		ARU = avgMakespan/mk;
+		return ARU;
+	}	
+
+	private static double avgRespT() 	// Average Response Time of All Tasks according to OG-RADL eq.(13)
+	{
+		double avgRTAllVms = 0.0, sumAvgRTSingleVms = 0;
+		for(FogDevice vm:fogDevices)
+		{
+			double avgRTSingleVm = 0;
+			int count = 0;
+			for(int i=0; i<cloudletList.size(); i++)
+			{
+				if (cloudletList.get(i).getVmId() == vm.getId())
+				{
+					avgRTSingleVm = avgRTSingleVm + cloudletList.get(i).getExecStartTime();    
+					count++;
+				}
+			}
+			if (avgRTSingleVm!=0 || count!=0)
+			{
+				avgRTSingleVm = avgRTSingleVm/count;
+			}
+			sumAvgRTSingleVms = sumAvgRTSingleVms + avgRTSingleVm;
+		}
+		avgRTAllVms = sumAvgRTSingleVms/fogDevices.size();
+		return avgRTAllVms;
+	}	
+
+	private static void printCloudletList(List<Cloudlet> list) {
+		int size = list.size();
+		Cloudlet cloudlet;
+
+		String indent = "    ";
+		Log.printLine();
+		Log.printLine("========== OUTPUT ==========");
+		Log.printLine("Cloudlet ID" + indent + "STATUS" + indent +
+				"Data center ID" + indent + "VM ID" + indent + "Time" + indent + "Start Time" + indent + "Finish Time");
+
+		DecimalFormat dft = new DecimalFormat("###.##");
+		
+		for (int i = 0; i < size; i++) {
+			cloudlet = list.get(i);
+			Log.print(indent + cloudlet.getCloudletId() + indent + indent);
+
+			if (cloudlet.getCloudletStatus() == Cloudlet.SUCCESS){
+				Log.print("SUCCESS");
+
+				Log.printLine( indent + indent + cloudlet.getResourceId() + indent + indent + indent + cloudlet.getVmId() +
+						indent + indent + dft.format(cloudlet.getActualCPUTime()) + indent + indent + dft.format(cloudlet.getExecStartTime())+
+						indent + indent + dft.format(cloudlet.getFinishTime()));
+			}
+		}
+	}
+}

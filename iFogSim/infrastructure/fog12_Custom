@@ -1,0 +1,15 @@
+{"nodes":[
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"fog00","type":"FOG_DEVICE","mips":200,"ram":2500,"downBw":5000,"costPerSec":0.28,"costPerMem":0.038,"costPerBw":0.041,"activeEC":25.664,"idleEC":15.539},
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"fog01","type":"FOG_DEVICE","mips":362,"ram":2500,"downBw":5000,"costPerSec":0.19,"costPerMem":0.022,"costPerBw":0.031,"activeEC":15.741,"idleEC":9.808},
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"fog02","type":"FOG_DEVICE","mips":524,"ram":2500,"downBw":5000,"costPerSec":0.34,"costPerMem":0.039,"costPerBw":0.039,"activeEC":49.760,"idleEC":33.714},
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"fog03","type":"FOG_DEVICE","mips":686,"ram":2500,"downBw":5000,"costPerSec":0.35,"costPerMem":0.039,"costPerBw":0.045,"activeEC":25.063,"idleEC":17.535},
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"fog04","type":"FOG_DEVICE","mips":848,"ram":2500,"downBw":5000,"costPerSec":0.22,"costPerMem":0.030,"costPerBw":0.033,"activeEC":38.925,"idleEC":25.793},
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"fog05","type":"FOG_DEVICE","mips":1010,"ram":2500,"downBw":5000,"costPerSec":0.36,"costPerMem":0.029,"costPerBw":0.046,"activeEC":21.566,"idleEC":14.162},
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"fog06","type":"FOG_DEVICE","mips":1172,"ram":2500,"downBw":5000,"costPerSec":0.37,"costPerMem":0.022,"costPerBw":0.044,"activeEC":45.165,"idleEC":28.263},
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"fog07","type":"FOG_DEVICE","mips":1334,"ram":2500,"downBw":5000,"costPerSec":0.11,"costPerMem":0.032,"costPerBw":0.033,"activeEC":38.204,"idleEC":23.797},
+{"level":3,"upBw":10000,"ratePerMips":0.0,"name":"fog08","type":"FOG_DEVICE","mips":1500,"ram":2500,"downBw":5000,"costPerSec":0.13,"costPerMem":0.033,"costPerBw":0.030,"activeEC":47.153,"idleEC":30.089},
+{"level":1,"upBw":10000,"ratePerMips":0.0,"name":"cloud00","type":"FOG_DEVICE","mips":4500,"ram":5000,"downBw":10000,"costPerSec":0.8,"costPerMem":0.12,"costPerBw":0.15,"activeEC":100.0,"idleEC":64.1},
+{"level":1,"upBw":10000,"ratePerMips":0.0,"name":"cloud01","type":"FOG_DEVICE","mips":4500,"ram":5000,"downBw":10000,"costPerSec":0.8,"costPerMem":0.12,"costPerBw":0.15,"activeEC":100.0,"idleEC":64.1},
+{"level":1,"upBw":10000,"ratePerMips":0.0,"name":"cloud02","type":"FOG_DEVICE","mips":4500,"ram":5000,"downBw":10000,"costPerSec":0.8,"costPerMem":0.12,"costPerBw":0.15,"activeEC":100.0,"idleEC":64.1},
+{"level":2,"upBw":10000,"ratePerMips":0.0,"name":"SmartGateway","type":"FOG_DEVICE","mips":2800,"ram":3500,"downBw":10000,"costPerSec":1.0,"costPerMem":0.85,"costPerBw":0.09,"activeEC":100.0,"idleEC":63.3},
+],"links":[]}

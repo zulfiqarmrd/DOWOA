@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item key="selection" value="sort"/>
+		<item key="wrap" value="false"/>
+		<item key="casesensitive" value="false"/>
+		<item key="wholeword" value="false"/>
+		<item key="incremental" value="false"/>
+		<item key="isRegEx" value="false"/>
+		<list key="findhistory">
+			<item value="sort"/>
+			<item value="sorting"/>
+			<item value="mapper"/>
+			<item value="map"/>
+			<item value="VMRTMap"/>
+			<item value="1/minTime"/>
+			<item value="share"/>
+			<item value="shared"/>
+			<item value="DOWOAB"/>
+			<item value="DOWOA"/>
+			<item value="SACO"/>
+			<item value="IPSO"/>
+			<item value="getCloudletLength"/>
+			<item value="w"/>
+			<item value="popNMap"/>
+		</list>
+		<list key="replacehistory">
+			<item value="particlesMap"/>
+			<item value="vm.getId()"/>
+			<item value="eachAlgoRun2"/>
+			<item value="sortAndSelect"/>
+			<item value="sortAndEliteSelect"/>
+			<item value="eachAcoRun"/>
+			<item value="algoNames"/>
+			<item value="acoNames"/>
+			<item value="eachAlgoAgent"/>
+			<item value="eachAlgorithm"/>
+			<item value="dynamicOppositePopulationGenerator"/>
+			<item value="5"/>
+			<item value="D:/iFogSim_Obj3/iFogSim/reports/"/>
+			<item value="popNMap"/>
+			<item value="secondMap"/>
+		</list>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
+		<item key="DIALOG_X_ORIGIN" value="807"/>
+		<item key="DIALOG_Y_ORIGIN" value="328"/>
+		<item key="DIALOG_WIDTH" value="318"/>
+		<item key="DIALOG_HEIGHT" value="358"/>
+		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-36|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+	</section>
+	<section name="org.eclipse.ui.texteditor.GotoLineAction$GotoLineDialog_dialogBounds">
+		<item key="DIALOG_X_ORIGIN" value="404"/>
+		<item key="DIALOG_Y_ORIGIN" value="219"/>
+	</section>
+</section>
